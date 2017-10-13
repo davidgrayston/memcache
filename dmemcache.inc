@@ -901,6 +901,8 @@ function dmemcache_object($bin = NULL, $flush = FALSE) {
   static $memcache_bins = array();
   static $failed_connections = array();
 
+  $extension = dmemcache_extension();
+
   if ($flush) {
     if (!empty($memcache_cache)) {
       foreach ($memcache_cache as $cluster) {
@@ -914,8 +916,6 @@ function dmemcache_object($bin = NULL, $flush = FALSE) {
       }
     }
   }
-
-  $extension = dmemcache_extension();
 
   if (empty($memcache_cache) || empty($memcache_cache[$bin])) {
     if (empty($memcache_servers)) {
