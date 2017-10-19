@@ -237,6 +237,12 @@ following to your settings.php:
 
   $conf['memcache_persistent'] = FALSE;
 
+If you are experiencing delayed writes and deletes using persistent
+connections, you can flush buffers at the end of each request by adding
+the following to settings.php:
+
+  $conf['memcache_flush_buffers'] = TRUE;
+
 ## EXAMPLES ##
 
 Example 1:

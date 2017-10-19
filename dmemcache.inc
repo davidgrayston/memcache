@@ -54,6 +54,7 @@ function dmemcache_set($key, $value, $exp = 0, $bin = 'cache', $mc = NULL) {
           $rc = _dmemcache_set_pieces($key, $value, $exp, $bin, $mc);
         }
       }
+      _dmemcached_register_buffer_flush($bin);
     }
     else {
       // The PECL Memcache library throws an E_NOTICE level error, which
@@ -513,6 +514,7 @@ function dmemcache_delete($key, $bin = 'cache', $mc = NULL) {
         dmemcache_stats_write('delete', $bin, array($fk => $rc));
       }
       _dmemcache_write_debug('delete', $bin, $fk, $rc);
+      _dmemcached_register_buffer_flush($bin);
     }
   }
 
@@ -1260,6 +1262,43 @@ function _dmemcache_write_debug($action, $bin, $key, $rc) {
     if (file_put_contents($memcache_debug_log, $debug_log, FILE_APPEND) === FALSE) {
       // This can lead to a lot of watchdog entries...
       register_shutdown_function('watchdog', 'memcache', 'Unable to write to debug log at !debug_file: !debug_log.', array('!debug_file' => $memcache_debug_file, '!debug_log' => $debug_log), WATCHDOG_ERROR);
+    }
+  }
+}
+
+/**
+ * Register bins to have buffers flushed.
+ *
+ * @param string $bin
+ *   The bin to have buffers flushed.
+ * @return bool
+ */
+function _dmemcached_register_buffer_flush($bin) {
+  if (!variable_get('memcache_flush_buffers', FALSE)) {
+    return FALSE;
+  }
+
+  $bins = &drupal_static('dmemcached_flush_bins', array());
+
+  // Register shutdown function to flush buffers.
+  if (empty($bins)) {
+    register_shutdown_function('_dmemcache_flush_buffers');
+  }
+
+  // Register bin to be flushed.
+  $bins[$bin] = $bin;
+
+  return TRUE;
+}
+
+/**
+ * Shutdown function to flush buffers.
+ */
+function _dmemcache_flush_buffers() {
+  $bins = &drupal_static('dmemcached_flush_bins', array());
+  foreach ($bins as $bin) {
+    if ($mc = dmemcache_object($bin)) {
+      $mc->flushBuffers();
     }
   }
 }
