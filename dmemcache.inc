@@ -285,6 +285,7 @@ function dmemcache_get($key, $bin = 'cache', $mc = NULL) {
       $php_errormsg = '';
     }
     ini_set('track_errors', $track_errors);
+    _dmemcached_deregister_buffer_flush($bin);
   }
 
   if ($collect_stats) {
@@ -393,6 +394,7 @@ function dmemcache_get_multi($keys, $bin = 'cache', $mc = NULL) {
         $cas_tokens = NULL;
         $results = $mc->getMulti($full_keys, $cas_tokens, Memcached::GET_PRESERVE_ORDER);
       }
+      _dmemcached_deregister_buffer_flush($bin);
     }
     elseif ($mc instanceof Memcache) {
       $track_errors = ini_set('track_errors', '1');
@@ -1287,6 +1289,24 @@ function _dmemcached_register_buffer_flush($bin) {
 
   // Register bin to be flushed.
   $bins[$bin] = $bin;
+
+  return TRUE;
+}
+
+/**
+ * De-register bins from having buffers flushed.
+ *
+ * @param string $bin
+ *   The bin to de-register.
+ * @return bool
+ */
+function _dmemcached_deregister_buffer_flush($bin) {
+  if (!variable_get('memcache_flush_buffers', FALSE)) {
+    return FALSE;
+  }
+
+  $bins = &drupal_static('dmemcached_flush_bins', array());
+  unset($bins[$bin]);
 
   return TRUE;
 }
